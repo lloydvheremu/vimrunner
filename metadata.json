@@ -1,0 +1,6 @@
+{
+  "name": "Vim Runner: The Modal Maze",
+  "description": "An educational 2D game that teaches Vim commands through a dynamic crossword-like maze where players navigate text paths and solve editing puzzles while staying ahead of a moving screen boundary.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
