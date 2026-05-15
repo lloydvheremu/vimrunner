@@ -19,13 +19,15 @@ export function useVimParser(
       return;
     }
 
+    const keyLower = e.key.toLowerCase();
+
     if (mode === VimMode.NORMAL) {
-      // Prevent default browser shortcuts if possible
-      if (['h', 'j', 'k', 'l', 'w', 'b', 'e', 'i', 'a', ':', 'v'].includes(e.key)) {
+      // Prevent default browser shortcuts for game keys
+      if (['h', 'j', 'k', 'l', 'w', 'b', 'e', 'i', 'v', ':'].includes(keyLower)) {
         e.preventDefault();
       }
 
-      switch (e.key) {
+      switch (keyLower) {
         case 'h': onMove({ x: -1, y: 0 }); break;
         case 'j': onMove({ x: 0, y: 1 }); break;
         case 'k': onMove({ x: 0, y: -1 }); break;
@@ -33,13 +35,11 @@ export function useVimParser(
         case 'i': setMode(VimMode.INSERT); break;
         case 'v': setMode(VimMode.VISUAL); break;
         case ':': setMode(VimMode.COMMAND); break;
-        // Future combinations go here
         default:
-          setBuffer(prev => prev + e.key);
+          if (e.key.length === 1) {
+            setBuffer(prev => prev + e.key);
+          }
       }
-    } else if (mode === VimMode.INSERT) {
-      // In insert mode, we mostly want to allow typing, but we can hook into special logic
-      // if we are in a specific edit zone.
     }
   }, [mode, onMove, setMode, onEscape]);
 

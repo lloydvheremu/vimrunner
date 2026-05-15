@@ -2,117 +2,89 @@
 import { Cell, Level, Position } from '../types';
 
 export function createBasicLevel(id: string): Level {
-  const width = 40;
-  const height = 20;
+  const width = 60;
+  const height = 30;
   const grid: Cell[][] = [];
 
   for (let y = 0; y < height; y++) {
     grid[y] = [];
     for (let x = 0; x < width; x++) {
-      // Basic wall generation: edges are walls
-      const isEdge = x === 0 || x === width - 1 || y === 0 || y === height - 1;
       grid[y][x] = {
-        char: isEdge ? '#' : ' ',
+        char: ' ',
         isRevealed: false,
-        type: isEdge ? 'wall' : 'path'
+        type: 'empty'
       };
     }
   }
 
-  // Add some simple text paths for Level 1 (h,j,k,l)
-  const pathText = "h j k l   m o v e m e n t";
-  for (let i = 0; i < pathText.length; i++) {
-    if (grid[5] && grid[5][5 + i]) {
-      grid[5][5 + i] = {
-        char: pathText[i],
-        isRevealed: false,
-        type: 'path'
-      };
+  // Helper to place a word
+  const placeWord = (x: number, y: number, word: string, direction: 'h' | 'v') => {
+    for (let i = 0; i < word.length; i++) {
+      const curX = direction === 'h' ? x + i : x;
+      const curY = direction === 'v' ? y + i : y;
+      if (grid[curY] && grid[curY][curX]) {
+        grid[curY][curX] = {
+          char: word[i].toUpperCase(),
+          isRevealed: false,
+          type: 'path'
+        };
+      }
     }
-  }
+  };
 
-  // Add obstacles (walls) to navigate around
-  for (let i = 2; i < 15; i++) {
-    grid[i][15] = { char: '|', isRevealed: false, type: 'wall' };
-  }
+  // Rule of Thumb: Each hub provides a "Forward" path and a "Decoy" path.
+  // We prioritize clear, non-conflicting intersections.
 
-  // Clear paths and add a goal
-  grid[15][35] = { char: 'G', isRevealed: false, type: 'goal' };
+  // MAIN BOOTSTRAP:
+  // 1. START (H): (10,10)S (11,10)T (12,10)A (13,10)R (14,10)T
+  placeWord(10, 10, "START", 'h');
+  
+  // 2. THROUGH (V): (14,10)T (14,11)H (14,12)R (14,13)O (14,14)U (14,15)G (14,16)H
+  placeWord(14, 10, "THROUGH", 'v');
 
-  // Add paths through the fog
-  const paths = [
-    { x: 2, y: 2, text: "START" },
-    { x: 5, y: 5, text: "NAVIGATE" },
-    { x: 10, y: 2, text: "DEAD END" }, // Upward branch
-    { x: 10, y: 8, text: "DOWN" },
-    { x: 10, y: 12, text: "CROSSWORD" },
-    { x: 20, y: 12, text: "PUZZLE" },
-    { x: 3, y: 10, text: "WRONG WAY" }, // Left branch
-    { x: 25, y: 15, text: "ALMOST" },
-    { x: 30, y: 15, text: "FINISH" },
-    { x: 20, y: 5, text: "TRAP" }
-  ];
+  // 3. HELPER (H): (14,16)H (15,16)E (16,16)L (17,16)P (18,16)E (19,16)R
+  placeWord(14, 16, "HELPER", 'h');
 
-  paths.forEach(p => {
-    for (let i = 0; i < p.text.length; i++) {
-        const py = p.y;
-        const px = p.x + i;
-        if (grid[py] && grid[py][px]) {
-            grid[py][px] = { char: p.text[i], isRevealed: false, type: 'path' };
-        }
-    }
-  });
+  // 4. RESULTS (V): (19,16)R (19,17)E (19,18)S (19,19)U (19,20)L (19,21)T (19,22)S
+  placeWord(19, 16, "RESULTS", 'v');
 
-  // Connecting passages
-  const connectors = [
-    { x1: 7, x2: 10, y: 5 }, // Connect NAVIGATE to DOWN/DEAD END
-    { x1: 10, y1: 5, y2: 8 }, // Vertical connector
-    { x1: 14, y1: 8, y2: 12 }, // Connect DOWN to CROSSWORD
-    { x1: 29, x2: 30, y: 12 }, // Gap connector
-    { x1: 20, y1: 12, y2: 15 }, // Puzzle to ALMOST
-  ];
+  // 5. FINISH (H): (19,22)F (20,22)I (21,22)N (22,22)I (23,22)S (24,22)H
+  placeWord(19, 22, "FINISH", 'h');
 
-  connectors.forEach(c => {
-    if ('x' in c) { // Vertical
-        const vertical = c as {x1: number, y1: number, y2: number};
-        for(let y = vertical.y1; y <= vertical.y2; y++) {
-            if(grid[y] && grid[y][vertical.x1]) grid[y][vertical.x1] = { char: ' ', isRevealed: false, type: 'path' };
-        }
-    } else { // Horizontal
-        const horizontal = c as {x1: number, x2: number, y: number};
-        for(let x = horizontal.x1; x <= horizontal.x2; x++) {
-            if(grid[horizontal.y] && grid[horizontal.y][x]) grid[horizontal.y][x] = { char: ' ', isRevealed: false, type: 'path' };
-        }
-    }
-  });
+  // DECOYS (Attractive dead ends):
+  // D1: From 'A' in START (12,10) -> Up ('k')
+  placeWord(12, 7, "AREA", 'v');  // (12,7)A (12,8)R (12,9)E (12,10)A -> Intersects START[2] 'A' at 12,10.
+  placeWord(9, 7, "SAFE", 'h');   // (9,7)S (10,7)A (11,7)F (12,7)E -> End of AREA.
+
+  // D2: From 'R' in THROUGH (14,12) -> Right ('l')
+  placeWord(14, 12, "RIGHT", 'h'); // (14,12)R (15,12)I (16,12)G (17,12)H (18,12)T
+  placeWord(18, 12, "TRAP", 'v');  // (18,12)T (18,13)R (18,14)A (18,15)P
+
+  // D3: From 'P' in HELPER (17,16) -> Up ('k')
+  placeWord(17, 13, "PATH", 'v');  // (17,13)P (17,14)A (17,15)T (17,16)H
+
+  // Goal: Final char of FINISH (24,22)
+  grid[22][24] = { char: '★', isRevealed: false, type: 'goal' };
 
   return {
     id,
-    title: "The Modal Maze",
-    description: "Navigate the smoking text maze. Stay ahead of the Critical Boundary.",
+    title: "Vim Runner",
+    description: "Master hjkl to find the ★. Watch out for attractive dead ends!",
     width,
     height,
-    startPos: { x: 2, y: 2 },
-    goalPos: { x: 35, y: 15 },
+    startPos: { x: 10, y: 10 },
+    goalPos: { x: 24, y: 22 },
     grid,
-    scrollingVector: { x: 0.12, y: 0 }, // Slightly faster pressure
-    scrollSpeed: 0.5,
+    scrollingVector: { x: 0, y: 0 },
+    scrollSpeed: 0,
     hints: [
-      "Movement: h (left), j (down), k (up), l (right).",
-      "The fog reveals itself as you move.",
-      "The Red Boundary will consume you if you hesitate."
+      "Use h, j, k, l to move your cursor.",
+      "Follow the words to find the goal."
     ],
     demoPath: [
-      {x: 2, y: 2}, {x: 3, y: 2}, {x: 4, y: 2}, {x: 5, y: 2},
-      {x: 5, y: 3}, {x: 5, y: 4}, {x: 5, y: 5},
-      {x: 6, y: 5}, {x: 7, y: 5}, {x: 8, y: 5}, {x: 9, y: 5}, {x: 10, y: 5},
-      {x: 10, y: 6}, {x: 10, y: 7}, {x: 10, y: 8},
-      {x: 11, y: 8}, {x: 12, y: 8}, {x: 13, y: 8}, {x: 14, y: 8},
-      {x: 14, y: 9}, {x: 14, y: 10}, {x: 14, y: 11}, {x: 14, y: 12},
-      {x: 15, y: 12}, {x: 16, y: 12}, {x: 17, y: 12}, {x: 18, y: 12}, {x: 19, y: 12}, {x: 20, y: 12},
-      {x: 21, y: 12}, {x: 22, y: 12}, {x: 23, y: 12}, {x: 24, y: 12}, {x: 25, y: 12}, {x: 26, y: 12}, {x: 27, y: 12}, {x: 28, y: 12}, {x: 29, y: 12}, {x: 30, y: 12},
-      {x: 30, y: 13}, {x: 30, y: 14}, {x: 30, y: 15},
-      {x: 31, y: 15}, {x: 32, y: 15}, {x: 33, y: 15}, {x: 34, y: 15}, {x: 35, y: 15}
+      {x: 4, y: 4}, {x: 5, y: 4}, {x: 6, y: 4},
+      {x: 6, y: 5}, {x: 6, y: 6}, {x: 6, y: 7}, {x: 6, y: 8}, {x: 6, y: 9}, {x: 6, y: 10},
+      {x: 7, y: 10}, {x: 8, y: 10}, {x: 9, y: 10}, {x: 10, y: 10}
     ]
   };
 }
