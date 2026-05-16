@@ -32,39 +32,47 @@ export function createBasicLevel(id: string): Level {
     }
   };
 
-  // Rule of Thumb: Each hub provides a "Forward" path and a "Decoy" path.
-  // We prioritize clear, non-conflicting intersections.
-
-  // MAIN BOOTSTRAP:
-  // 1. START (H): (10,10)S (11,10)T (12,10)A (13,10)R (14,10)T
-  placeWord(10, 10, "START", 'h');
+  // A strictly connected crossword maze
+  // Intersection characters are the primary way to move between words.
   
-  // 2. THROUGH (V): (14,10)T (14,11)H (14,12)R (14,13)O (14,14)U (14,15)G (14,16)H
-  placeWord(14, 10, "THROUGH", 'v');
+  // Hub 1: START (Horizontal)
+  // (10,10)S (11,10)T (12,10)A (13,10)R (14,10)T
+  placeWord(10, 10, "START", 'h');
 
-  // 3. HELPER (H): (14,16)H (15,16)E (16,16)L (17,16)P (18,16)E (19,16)R
-  placeWord(14, 16, "HELPER", 'h');
+  // DECOY: TRAP (Vertical) from last 'T' of START
+  // (14,10)T (14,11)R (14,12)A (14,13)P
+  placeWord(14, 10, "TRAP", 'v');
 
-  // 4. RESULTS (V): (19,16)R (19,17)E (19,18)S (19,19)U (19,20)L (19,21)T (19,22)S
-  placeWord(19, 16, "RESULTS", 'v');
+  // Hub 2: ARCADE (Vertical) from 'A' of START (12,10)
+  // (12,10)A (12,11)R (12,12)C (12,13)A (12,14)D (12,15)E
+  placeWord(12, 10, "ARCADE", 'v');
 
-  // 5. FINISH (H): (19,22)F (20,22)I (21,22)N (22,22)I (23,22)S (24,22)H
-  placeWord(19, 22, "FINISH", 'h');
+  // Hub 3: ALWAYS (Horizontal) from second 'A' of ARCADE (12,13)
+  // (12,13)A (13,13)L (14,13)W (15,13)A (16,13)Y (17,13)S
+  placeWord(12, 13, "ALWAYS", 'h');
 
-  // DECOYS (Attractive dead ends):
-  // D1: From 'A' in START (12,10) -> Up ('k')
-  placeWord(12, 7, "AREA", 'v');  // (12,7)A (12,8)R (12,9)E (12,10)A -> Intersects START[2] 'A' at 12,10.
-  placeWord(9, 7, "SAFE", 'h');   // (9,7)S (10,7)A (11,7)F (12,7)E -> End of AREA.
+  // DECOY: LOST (Vertical) from 'L' of ALWAYS (13,13)
+  // (13,13)L (13,14)O (13,15)S (13,16)T
+  placeWord(13, 13, "LOST", 'v');
 
-  // D2: From 'R' in THROUGH (14,12) -> Right ('l')
-  placeWord(14, 12, "RIGHT", 'h'); // (14,12)R (15,12)I (16,12)G (17,12)H (18,12)T
-  placeWord(18, 12, "TRAP", 'v');  // (18,12)T (18,13)R (18,14)A (18,15)P
+  // Hub 4: YELL (Vertical) from 'Y' of ALWAYS (16,13)
+  // (16,13)Y (16,14)E (16,15)L (16,16)L
+  placeWord(16, 13, "YELL", 'v');
 
-  // D3: From 'P' in HELPER (17,16) -> Up ('k')
-  placeWord(17, 13, "PATH", 'v');  // (17,13)P (17,14)A (17,15)T (17,16)H
+  // Hub 5: LOCK (Horizontal) from second 'L' of YELL (16,16)
+  // (16,16)L (17,16)O (18,16)C (19,16)K
+  placeWord(16, 16, "LOCK", 'h');
 
-  // Goal: Final char of FINISH (24,22)
-  grid[22][24] = { char: '★', isRevealed: false, type: 'goal' };
+  // Hub 6: KEYS (Vertical) from 'K' of LOCK (19,16)
+  // (19,16)K (19,17)E (19,18)Y (19,19)S
+  placeWord(19, 16, "KEYS", 'v');
+
+  // Hub 7: SUCCESS (Horizontal) from 'S' of KEYS (19,19)
+  // (19,19)S (20,19)U (21,19)C (22,19)C (23,19)E (24,19)S (25,19)S
+  placeWord(19, 19, "SUCCESS", 'h');
+
+  // Goal state: The final character of SUCCESS (25,19)
+  grid[19][25] = { char: '★', isRevealed: false, type: 'goal' };
 
   return {
     id,
@@ -73,7 +81,7 @@ export function createBasicLevel(id: string): Level {
     width,
     height,
     startPos: { x: 10, y: 10 },
-    goalPos: { x: 24, y: 22 },
+    goalPos: { x: 25, y: 19 },
     grid,
     scrollingVector: { x: 0, y: 0 },
     scrollSpeed: 0,
@@ -82,19 +90,69 @@ export function createBasicLevel(id: string): Level {
       "Follow the words to find the goal."
     ],
     demoPath: [
-      {x: 4, y: 4}, {x: 5, y: 4}, {x: 6, y: 4},
-      {x: 6, y: 5}, {x: 6, y: 6}, {x: 6, y: 7}, {x: 6, y: 8}, {x: 6, y: 9}, {x: 6, y: 10},
-      {x: 7, y: 10}, {x: 8, y: 10}, {x: 9, y: 10}, {x: 10, y: 10}
+      {x: 10, y: 10}, {x: 11, y: 10}, {x: 12, y: 10},
+      {x: 12, y: 11}, {x: 12, y: 12}, {x: 12, y: 13},
+      {x: 13, y: 13}, {x: 14, y: 13}, {x: 15, y: 13}, {x: 16, y: 13},
+      {x: 16, y: 14}, {x: 16, y: 15}, {x: 16, y: 16},
+      {x: 17, y: 16}, {x: 18, y: 16}, {x: 19, y: 16},
+      {x: 19, y: 17}, {x: 19, y: 18}, {x: 19, y: 19},
+      {x: 20, y: 19}, {x: 21, y: 19}, {x: 22, y: 19}, {x: 23, y: 19}, {x: 24, y: 19}, {x: 25, y: 19}
     ]
   };
 }
 
-export function revealCells(grid: Cell[][], pos: Position, radius: number = 2): Cell[][] {
+export function revealCells(grid: Cell[][], pos: Position): Cell[][] {
+  const { x, y } = pos;
+  if (!grid[y] || !grid[y][x]) return grid;
+
+  // Check if anything actually needs to be revealed
+  // We'll just do a reveal and check if different later for efficiency
+  const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
+  
+  // 1. Reveal horizontal chain (up to 3 units)
+  for (let i = 0; i <= 3; i++) {
+    const cx = x - i;
+    if (cx >= 0 && grid[y][cx].type !== 'empty') {
+      newGrid[y][cx].isRevealed = true;
+    } else {
+      break;
+    }
+  }
+  for (let i = 1; i <= 3; i++) {
+    const cx = x + i;
+    if (cx < grid[0].length && grid[y][cx].type !== 'empty') {
+      newGrid[y][cx].isRevealed = true;
+    } else {
+      break;
+    }
+  }
+
+  // 2. Reveal vertical chain (up to 3 units)
+  for (let i = 0; i <= 3; i++) {
+    const cy = y - i;
+    if (cy >= 0 && grid[cy][x].type !== 'empty') {
+      newGrid[cy][x].isRevealed = true;
+    } else {
+      break;
+    }
+  }
+  for (let i = 1; i <= 3; i++) {
+    const cy = y + i;
+    if (cy < grid.length && grid[cy][x].type !== 'empty') {
+      newGrid[cy][x].isRevealed = true;
+    } else {
+      break;
+    }
+  }
+
+  // 3. Failsafe: reveal the cell itself
+  newGrid[y][x].isRevealed = true;
+
+  // Small optimization: check if anything actually changed
   let changed = false;
-  // Check if any cell in the radius needs revealing
-  for (let y = Math.max(0, pos.y - radius); y <= Math.min(grid.length - 1, pos.y + radius); y++) {
-    for (let x = Math.max(0, pos.x - radius); x <= Math.min(grid[0].length - 1, pos.x + radius); x++) {
-      if (!grid[y][x].isRevealed) {
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[0].length; c++) {
+      if (grid[r][c].isRevealed !== newGrid[r][c].isRevealed) {
         changed = true;
         break;
       }
@@ -102,13 +160,5 @@ export function revealCells(grid: Cell[][], pos: Position, radius: number = 2): 
     if (changed) break;
   }
 
-  if (!changed) return grid;
-
-  const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
-  for (let y = Math.max(0, pos.y - radius); y <= Math.min(grid.length - 1, pos.y + radius); y++) {
-    for (let x = Math.max(0, pos.x - radius); x <= Math.min(grid[0].length - 1, pos.x + radius); x++) {
-      newGrid[y][x].isRevealed = true;
-    }
-  }
-  return newGrid;
+  return changed ? newGrid : grid;
 }

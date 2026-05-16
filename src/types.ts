@@ -1,4 +1,9 @@
 
+export enum GameMode {
+  CLASSIC = 'CLASSIC',
+  ENDLESS = 'ENDLESS'
+}
+
 export enum VimMode {
   NORMAL = 'NORMAL',
   INSERT = 'INSERT',

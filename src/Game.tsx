@@ -2,16 +2,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Terminal, ShieldAlert, Cpu, Keyboard, ArrowRight } from 'lucide-react';
-import { VimMode, Position, Level, Cell } from './types';
+import { VimMode, Position, Level, Cell, GameMode } from './types';
 import { createBasicLevel, revealCells } from './utils/levelUtils';
+import { generateProceduralLevel } from './utils/proceduralUtils';
 import { useVimParser } from './hooks/useVimParser';
 
 const CELL_SIZE = 30;
 
 export default function Game() {
+  const [gameMode, setGameMode] = useState<GameMode>(GameMode.CLASSIC);
   const [level, setLevel] = useState<Level>(() => createBasicLevel('1'));
   const [playerPos, setPlayerPos] = useState<Position>(level.startPos);
-  const [ghostPos, setGhostPos] = useState<Position>({ x: 0, y: 0 });
+  const [ghostPos, setGhostPos] = useState<Position>(() => ({ 
+    x: level.startPos.x - 2, 
+    y: level.startPos.y 
+  }));
   const [mode, setMode] = useState<VimMode>(VimMode.NORMAL);
   const [isStarted, setIsStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -51,7 +56,7 @@ export default function Game() {
   // Reveal logic
   useEffect(() => {
     setLevel(prev => {
-      const nextGrid = revealCells(prev.grid, playerPos, 3);
+      const nextGrid = revealCells(prev.grid, playerPos);
       if (nextGrid === prev.grid) return prev;
       return { ...prev, grid: nextGrid };
     });
@@ -223,10 +228,19 @@ export default function Game() {
   // Moved handleMove above key listener
 
   const resetLevel = () => {
-    const newLevel = createBasicLevel('1');
+    let newLevel: Level;
+    if (gameMode === GameMode.CLASSIC) {
+      newLevel = createBasicLevel('1');
+    } else {
+      newLevel = generateProceduralLevel('procedural', Math.random().toString());
+    }
+
     setLevel(newLevel);
     setPlayerPos(newLevel.startPos);
-    setGhostPos({ x: 0, y: 0 });
+    setGhostPos({ 
+      x: newLevel.startPos.x - 2, 
+      y: newLevel.startPos.y 
+    });
     setIsStarted(false);
     setHasPlayerMoved(false);
     setIsGameOver(false);
@@ -417,18 +431,49 @@ export default function Game() {
                </div>
 
                <div className="flex flex-col gap-4">
+                  <div className="flex gap-2 mb-2 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+                    <button 
+                      onClick={() => {
+                        setGameMode(GameMode.CLASSIC);
+                        const lvl = createBasicLevel('1');
+                        setLevel(lvl);
+                        setPlayerPos(lvl.startPos);
+                        setGhostPos({ x: lvl.startPos.x - 2, y: lvl.startPos.y });
+                      }}
+                      className={`flex-1 py-2 rounded-md text-[10px] font-bold tracking-widest transition-all ${gameMode === GameMode.CLASSIC ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      CLASSIC_OS
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setGameMode(GameMode.ENDLESS);
+                        const lvl = generateProceduralLevel('procedural', Math.random().toString());
+                        setLevel(lvl);
+                        setPlayerPos(lvl.startPos);
+                        setGhostPos({ x: lvl.startPos.x - 2, y: lvl.startPos.y });
+                      }}
+                      className={`flex-1 py-2 rounded-md text-[10px] font-bold tracking-widest transition-all ${gameMode === GameMode.ENDLESS ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                      ENDLESS_VOID
+                    </button>
+                  </div>
+
                   <button 
                     onClick={() => setIsStarted(true)}
-                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-[#0c0e12] font-black text-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95"
+                    className={`w-full py-4 text-[#0c0e12] font-black text-xl transition-all shadow-lg active:scale-95
+                      ${gameMode === GameMode.CLASSIC ? 'bg-sky-500 hover:bg-sky-400 shadow-sky-500/20' : 'bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20'}
+                    `}
                   >
-                    INITIALIZE_SESSION()
+                    BOOT_SESSION()
                   </button>
-                  <button 
-                    onClick={startDemo}
-                    className="w-full py-2 text-slate-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
-                  >
-                    -- RUN_DEMO.MOD --
-                  </button>
+                  {gameMode === GameMode.CLASSIC && (
+                    <button 
+                      onClick={startDemo}
+                      className="w-full py-2 text-slate-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
+                    >
+                      -- RUN_DEMO.MOD --
+                    </button>
+                  )}
                </div>
             </div>
           </motion.div>
