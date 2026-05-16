@@ -16,11 +16,24 @@ function getRandomWord(exclude: string[] = []): string {
   return available[Math.floor(Math.random() * available.length)] || "VIM";
 }
 
+/**
+ * Procedural level generator using a dictionary-based branching algorithm.
+ * 
+ * Think of this as a "Reverse Crossword Solver":
+ * Instead of filling a grid based on clues, we pick a word, then find a random character
+ * in that word to sprout a NEW word perpendicularly, ensuring they intersect correctly.
+ * 
+ * @param id Level identifier
+ * @param seed Random seed string
+ * @returns A fully generated Level object
+ */
 export function generateProceduralLevel(id: string, seed: string): Level {
   const width = 60;
   const height = 30;
   
   // Padding for the "Fixed Shape Outline" (A Tidy Rectangle)
+  // This ensures the maze doesn't hug the very edges of the terminal window,
+  // keeping the design clean and intentional.
   const PADDING_X = 5;
   const PADDING_Y = 3;
   const INNER_WIDTH = width - PADDING_X * 2;
@@ -29,6 +42,10 @@ export function generateProceduralLevel(id: string, seed: string): Level {
   let finalLevel: Level | null = null;
   let generationAttempts = 0;
 
+  // We use a "Retry Loop" (Iteration) instead of Recursion to avoid 
+  // "Maximum call stack size exceeded" errors.
+  // This is like a chef trying 50 different plating arrangements until one is perfect,
+  // rather than a chef calling themselves recursively to plate.
   while (!finalLevel && generationAttempts < 50) {
     generationAttempts++;
     const grid: Cell[][] = [];
@@ -39,7 +56,10 @@ export function generateProceduralLevel(id: string, seed: string): Level {
       }
     }
 
-    // Quadrant logic for start/goal
+    // QUADRANT LOGIC (Guaranteed Distance)
+    // We divide the grid into 4 corners (Quadrants).
+    // If the START is in the Top-Left (Q0), we force the TARGET to be in the 
+    // Bottom-Right (Q3). This prevents the "Level 1 is too short" problem.
     const startQ = Math.floor(Math.random() * 4);
     const startX = startQ % 2 === 0 ? PADDING_X + 2 : width - PADDING_X - 5;
     const startY = startQ < 2 ? PADDING_Y + 2 : height - PADDING_Y - 5;
@@ -47,6 +67,11 @@ export function generateProceduralLevel(id: string, seed: string): Level {
 
     const placedWords: { word: string; x: number; y: number; dir: 'h' | 'v'; depth: number }[] = [];
 
+    /**
+     * Collision detection for word placement.
+     * Imagine laying a physical tile: we check if the floor is clear and if the 
+     * edges touch any other tiles we didn't intend to connect with.
+     */
     const canPlaceWord = (x: number, y: number, word: string, dir: 'h' | 'v', intersectionIdx: number): boolean => {
       const worldX = dir === 'h' ? x - intersectionIdx : x;
       const worldY = dir === 'v' ? y - intersectionIdx : y;
@@ -95,14 +120,19 @@ export function generateProceduralLevel(id: string, seed: string): Level {
       placedWords.push({ word, x: worldX, y: worldY, dir, depth });
     };
 
+    // Initial word placement to seed the growth loop.
+    // This is the first "root" of our vine.
     placeWord(startX, startY, "START", 'h', 0, 0);
 
-    // Increase target for more noise
+    // THE GROWTH LOOP
+    // We continue sprouting new branches until we reach our target density.
+    // Analogy: Planting a vine. The first word is the root, and each new word 
+    // is a sprout growing off an existing leaf.
     const targetWords = 20; 
     let growthAttempts = 0;
     while (placedWords.length < targetWords && growthAttempts < 600) {
       growthAttempts++;
-      // Pick a random word, but bias towards older words sometimes to branch out
+      // Pick a random word from the trellis to sprout from
       const parentIdx = Math.floor(Math.random() * placedWords.length);
       
       const parent = placedWords[parentIdx];

@@ -101,21 +101,34 @@ export function createBasicLevel(id: string): Level {
   };
 }
 
+/**
+ * Calculates which cells should be revealed based on the player's current position.
+ * 
+ * Visibility Analogy: "The Guided Flashlight"
+ * Imagine you are walking through a dark pipe system. Your flashlight only shines 
+ * along the path you are currently on. If you reach a T-junction (intersection), 
+ * the light spills into the connecting pipes for a short distance (lookahead), 
+ * but never illuminates the dirt (empty space) between the pipes.
+ * 
+ * @param grid Current state of the game grid
+ * @param pos Player's current {x, y} coordinate
+ * @returns A new grid with updated isRevealed properties (or original if no change)
+ */
 export function revealCells(grid: Cell[][], pos: Position): Cell[][] {
   const { x, y } = pos;
   if (!grid[y] || !grid[y][x]) return grid;
 
-  // Check if anything actually needs to be revealed
-  // We'll just do a reveal and check if different later for efficiency
+  // Clone grid to prepare for updates
   const newGrid = grid.map(row => row.map(cell => ({ ...cell })));
   
-  // 1. Reveal horizontal chain (up to 3 units)
+  // 1. Reveal horizontal path segment (up to 3 characters ahead/behind)
+  // This simulates the "Lookahead" restricted to the current active word.
   for (let i = 0; i <= 3; i++) {
     const cx = x - i;
     if (cx >= 0 && grid[y][cx].type !== 'empty') {
       newGrid[y][cx].isRevealed = true;
     } else {
-      break;
+      break; // Stop if we hit a wall/empty space
     }
   }
   for (let i = 1; i <= 3; i++) {
@@ -127,7 +140,7 @@ export function revealCells(grid: Cell[][], pos: Position): Cell[][] {
     }
   }
 
-  // 2. Reveal vertical chain (up to 3 units)
+  // 2. Reveal vertical path segment (up to 3 characters ahead/behind)
   for (let i = 0; i <= 3; i++) {
     const cy = y - i;
     if (cy >= 0 && grid[cy][x].type !== 'empty') {
